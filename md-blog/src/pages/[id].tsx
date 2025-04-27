@@ -2,18 +2,30 @@ import type { NextPage } from "next";
 import { PathParams } from "../types/global";
 import { PostContent } from "../types/post";
 import { getAllPostIds, getPostDetail } from "../utils/getPosts";
+import useSWR from "swr";
+import { SWRConfig } from "swr";
 
 interface Props {
-	postData: PostContent;
+	fallback: {
+		postData: PostContent;
+	};
 }
 
-const PostDetail: NextPage<Props> = ({ postData }) => {
+const PostDetail: NextPage<Props> = ({ fallback }) => {
+	const { data } = useSWR("getPostDetail", { fallbackData: fallback });
+
 	return (
-		<>
-			<h1>{postData.title}</h1>
-			<p>{postData.date}</p>
-			<div dangerouslySetInnerHTML={{ __html: postData.htmlContent }} />
-		</>
+		<SWRConfig value={{ fallback }}>
+			{data && (
+				<>
+					<h1>{data.postData.title}</h1>
+					<p>{data.postData.date}</p>
+					<div
+						dangerouslySetInnerHTML={{ __html: data.postData.htmlContent }}
+					/>
+				</>
+			)}
+		</SWRConfig>
 	);
 };
 
@@ -21,7 +33,9 @@ export async function getStaticProps({ params }: PathParams) {
 	const postData = await getPostDetail(params.id);
 	return {
 		props: {
-			postData,
+			fallback: {
+				postData,
+			},
 		},
 	};
 }
